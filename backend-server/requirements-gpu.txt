@@ -1,4 +1,10 @@
-# Optional NVIDIA CUDA deployment only.
-# Install only when the host has a compatible NVIDIA driver, CUDA and cuDNN.
--r requirements.txt
+# Optional NVIDIA CUDA deployment only. Requires a compatible NVIDIA driver,
+# CUDA and cuDNN runtime. Do not install alongside the CPU onnxruntime package.
+fastapi
+uvicorn[standard]
+python-multipart
+opencv-python-headless
+insightface>=0.7.3
 onnxruntime-gpu
+numpy
+pillow
