@@ -1,0 +1,21 @@
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+*.iml
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Model weights are not distributed in this repository.
+backend-server/models/
+*.onnx
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
