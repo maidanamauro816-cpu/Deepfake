@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#101014">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="18dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="DEEPFAKE · FACE SWAP"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="22sp"
+            android:gravity="center"
+            android:paddingBottom="18dp" />
+
+        <Button
+            android:id="@+id/btnSelectSource"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Seleccionar rostro de origen" />
+
+        <ImageView
+            android:id="@+id/imgSource"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:background="#292930"
+            android:contentDescription="Vista previa del rostro de origen"
+            android:scaleType="centerCrop" />
+
+        <Button
+            android:id="@+id/btnSelectTarget"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Seleccionar imagen de destino" />
+
+        <ImageView
+            android:id="@+id/imgTarget"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="18dp"
+            android:background="#292930"
+            android:contentDescription="Vista previa de la imagen de destino"
+            android:scaleType="centerCrop" />
+
+        <Button
+            android:id="@+id/btnSwap"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="EJECUTAR FACE SWAP"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#B3263E"
+            android:minHeight="56dp" />
+
+        <TextView
+            android:id="@+id/txtStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Seleccioná las dos imágenes para comenzar."
+            android:textColor="#D7D7DE"
+            android:gravity="center"
+            android:padding="12dp" />
+
+        <ImageView
+            android:id="@+id/imgResult"
+            android:layout_width="match_parent"
+            android:layout_height="320dp"
+            android:layout_marginTop="8dp"
+            android:background="#292930"
+            android:contentDescription="Resultado del procesamiento"
+            android:scaleType="fitCenter" />
+
+    </LinearLayout>
+</ScrollView>
