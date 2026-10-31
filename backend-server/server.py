@@ -26,7 +26,7 @@ MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))
 MAX_IMAGE_SIDE = int(os.getenv("MAX_IMAGE_SIDE", "4096"))
 MAX_IMAGE_PIXELS = int(os.getenv("MAX_IMAGE_PIXELS", "16000000"))
 MODEL_PATH = Path(os.getenv("MODEL_PATH", "./models/inswapper_128.onnx"))
-FACE_ANALYSIS_ROOT = Path(os.getenv("FACE_ANALYSIS_ROOT", "./models/insightface"))
+FACE_ANALYSIS_ROOT = Path(os.getenv("FACE_ANALYSIS_ROOT", "."))
 DET_SIZE = int(os.getenv("DET_SIZE", "640"))
 
 face_analyser: Any = None
