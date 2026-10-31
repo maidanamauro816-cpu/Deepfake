@@ -1,0 +1,4 @@
+# Optional NVIDIA CUDA deployment only.
+# Install only when the host has a compatible NVIDIA driver, CUDA and cuDNN.
+-r requirements.txt
+onnxruntime-gpu
