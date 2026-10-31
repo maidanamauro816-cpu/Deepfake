@@ -13,10 +13,11 @@ This repository does not redistribute pretrained model weights.
 
 1. Obtain the exact model files from their rights holder or an authorized source.
 2. Save the model license/permission and model version alongside deployment records.
-3. Verify the license covers the intended use, territory, redistribution, hosting and number of users.
-4. Store the files outside Git (for example, a private server volume); never commit model weights or secrets.
-5. Set `MODEL_PATH` and run the API health check after both models load.
-6. Do not mark the model as approved until the written license has been reviewed.
+3. Place the InsightFace package directory at `backend-server/models/buffalo_l/` (with its model files) and the swapper file at `backend-server/models/inswapper_128.onnx`; set `FACE_ANALYSIS_ROOT=.` and `MODEL_PATH=./models/inswapper_128.onnx` when running from `backend-server`.
+4. Verify the license covers the intended use, territory, redistribution, hosting and number of users.
+5. Store the files outside Git (for example, a private server volume); never commit model weights or secrets.
+6. Set `MODEL_PATH` and run the API health check after both models load.
+7. Do not mark the model as approved until the written license has been reviewed.
 
 Official references:
 - InsightFace license and model notice: https://github.com/deepinsight/insightface
