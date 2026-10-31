@@ -14,12 +14,37 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="DEEPFAKE · FACE SWAP"
+            android:text="DEEPFAKE · AI STUDIO"
             android:textColor="#FFFFFF"
             android:textStyle="bold"
             android:textSize="22sp"
             android:gravity="center"
             android:paddingBottom="18dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Conexión con el motor IA"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:paddingBottom="6dp" />
+
+        <EditText
+            android:id="@+id/inputServerUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="http://192.168.1.20:8000"
+            android:inputType="textUri"
+            android:singleLine="true"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#999999"
+            android:backgroundTint="#B3263E" />
+
+        <Button
+            android:id="@+id/btnSaveServer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="GUARDAR CONEXIÓN" />
 
         <Button
             android:id="@+id/btnSelectSource"
@@ -69,7 +94,7 @@
             android:id="@+id/txtStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Seleccioná las dos imágenes para comenzar."
+            android:text="Configurá el servidor y seleccioná las dos imágenes."
             android:textColor="#D7D7DE"
             android:gravity="center"
             android:padding="12dp" />
