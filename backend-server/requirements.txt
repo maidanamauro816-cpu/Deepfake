@@ -1,8 +1,9 @@
+# CPU-compatible backend dependencies. Python 3.10/3.11 recommended.
 fastapi
 uvicorn[standard]
 python-multipart
 opencv-python-headless
 insightface>=0.7.3
-onnxruntime-gpu
+onnxruntime
 numpy
 pillow
