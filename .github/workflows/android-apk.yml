@@ -2,6 +2,13 @@ name: Android APK
 
 on:
   push:
+    branches:
+      - main
+      - integration/locally-uncensored-review
+    paths:
+      - "android-app/**"
+      - ".github/workflows/android-apk.yml"
+  pull_request:
     branches: [ main ]
     paths:
       - "android-app/**"

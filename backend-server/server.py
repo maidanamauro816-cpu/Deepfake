@@ -26,10 +26,12 @@ MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))
 MAX_IMAGE_SIDE = int(os.getenv("MAX_IMAGE_SIDE", "4096"))
 MAX_IMAGE_PIXELS = int(os.getenv("MAX_IMAGE_PIXELS", "16000000"))
 MODEL_PATH = Path(os.getenv("MODEL_PATH", "./models/inswapper_128.onnx"))
+FACE_ANALYSIS_ROOT = Path(os.getenv("FACE_ANALYSIS_ROOT", "."))
 DET_SIZE = int(os.getenv("DET_SIZE", "640"))
 
 face_analyser: Any = None
 face_swapper: Any = None
+model_load_error: str | None = None
 
 
 def load_models() -> None:
@@ -55,14 +57,26 @@ def load_models() -> None:
     from insightface.app import FaceAnalysis
     from insightface.model_zoo import get_model
 
-    face_analyser = FaceAnalysis(name="buffalo_l", providers=providers)
+    if not (FACE_ANALYSIS_ROOT / "models" / "buffalo_l").is_dir():
+        raise RuntimeError(
+            f"Face analysis model folder not found under {FACE_ANALYSIS_ROOT}. "
+            "Install an authorized buffalo_l package manually; automatic downloads are disabled."
+        )
+
+    face_analyser = FaceAnalysis(name="buffalo_l", root=str(FACE_ANALYSIS_ROOT), providers=providers)
     face_analyser.prepare(ctx_id=ctx_id, det_size=(DET_SIZE, DET_SIZE))
     face_swapper = get_model(str(MODEL_PATH), providers=providers)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    load_models()
+    global model_load_error
+    try:
+        load_models()
+        model_load_error = None
+    except Exception as exc:
+        model_load_error = f"{type(exc).__name__}: {exc}"
+        print(f"Model initialization failed: {model_load_error}")
     yield
 
 
@@ -74,10 +88,13 @@ app = FastAPI(
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
+def health() -> dict[str, str | bool | None]:
+    ready = face_analyser is not None and face_swapper is not None
     return {
-        "status": "ok" if face_analyser is not None and face_swapper is not None else "starting",
+        "status": "ok" if ready else "model_unavailable",
+        "models_loaded": ready,
         "device": "cuda-preferred" if os.getenv("USE_CUDA", "1") != "0" else "cpu",
+        "detail": model_load_error,
     }
 
 
@@ -108,7 +125,7 @@ async def read_image_upload(upload: UploadFile, field_name: str) -> np.ndarray:
 def perform_swap(source_img: np.ndarray, target_img: np.ndarray) -> bytes:
     """Run face detection and swap synchronously in a worker thread."""
     if face_analyser is None or face_swapper is None:
-        raise RuntimeError("AI models are not loaded")
+        raise RuntimeError("AI models are not loaded; check /health and model licensing/setup")
 
     source_faces = face_analyser.get(source_img)
     target_faces = face_analyser.get(target_img)
@@ -150,6 +167,9 @@ async def swap_faces(
     target: UploadFile = File(..., description="Image receiving the source face"),
 ):
     """Accept multipart fields 'source' and 'target'; return a JPEG image."""
+    if face_analyser is None or face_swapper is None:
+        raise HTTPException(status_code=503, detail="AI models are not ready. Check /health and install authorized model files.")
+
     source_img = await read_image_upload(source, "source")
     target_img = await read_image_upload(target, "target")
 

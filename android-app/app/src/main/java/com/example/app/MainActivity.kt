@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -23,11 +24,9 @@ class MainActivity : Activity() {
     companion object {
         private const val REQUEST_SOURCE = 1001
         private const val REQUEST_TARGET = 1002
-
-        // Android Emulator -> host computer. For a physical phone, replace
-        // 10.0.2.2 with the computer's LAN IP (for example, 192.168.1.20).
-        private const val BASE_URL = "http://10.0.2.2:8000"
-        private const val SWAP_ENDPOINT = "$BASE_URL/swap"
+        private const val PREFS = "deepfake_settings"
+        private const val PREF_SERVER_URL = "server_url"
+        private const val DEFAULT_SERVER_URL = ""
     }
 
     private val httpClient: OkHttpClient by lazy {
@@ -44,9 +43,16 @@ class MainActivity : Activity() {
     private lateinit var resultPreview: ImageView
     private lateinit var statusText: TextView
     private lateinit var swapButton: Button
+    private lateinit var serverUrlInput: EditText
 
     private var sourceFile: File? = null
     private var targetFile: File? = null
+
+    private val serverBaseUrl: String
+        get() = getSharedPreferences(PREFS, MODE_PRIVATE)
+            .getString(PREF_SERVER_URL, DEFAULT_SERVER_URL)!!
+            .trim()
+            .trimEnd('/')
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +63,15 @@ class MainActivity : Activity() {
         resultPreview = findViewById(R.id.imgResult)
         statusText = findViewById(R.id.txtStatus)
         swapButton = findViewById(R.id.btnSwap)
+        serverUrlInput = findViewById(R.id.inputServerUrl)
 
+        serverUrlInput.setText(serverBaseUrl)
+        findViewById<Button>(R.id.btnSaveServer).setOnClickListener {
+            saveServerUrl()
+        }
+        findViewById<Button>(R.id.btnTestServer).setOnClickListener {
+            testServerConnection()
+        }
         findViewById<Button>(R.id.btnSelectSource).setOnClickListener {
             openImagePicker(REQUEST_SOURCE)
         }
@@ -67,6 +81,19 @@ class MainActivity : Activity() {
         swapButton.setOnClickListener { submitFaceSwap() }
 
         updateSwapButton()
+    }
+
+    private fun saveServerUrl() {
+        val value = serverUrlInput.text.toString().trim().trimEnd('/')
+        val valid = value.startsWith("http://") || value.startsWith("https://")
+        if (!valid || value.length < 12) {
+            statusText.text = "Ingresá una dirección completa, por ejemplo http://192.168.1.20:8000"
+            return
+        }
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+            .putString(PREF_SERVER_URL, value)
+            .apply()
+        statusText.text = "Servidor guardado: $value"
     }
 
     private fun openImagePicker(requestCode: Int) {
@@ -80,13 +107,10 @@ class MainActivity : Activity() {
     @Deprecated("Uses startActivityForResult for compatibility with a plain Activity")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-
         if (resultCode != RESULT_OK) return
         val uri: Uri = data?.data ?: return
 
         try {
-            // Copy the selected content URI into app cache. The network request
-            // can then read a normal File without depending on gallery URI access.
             val cachedImage = copyUriToCache(uri)
             when (requestCode) {
                 REQUEST_SOURCE -> {
@@ -112,11 +136,8 @@ class MainActivity : Activity() {
         val destination = File.createTempFile("face_swap_", ".img", cacheDir)
         val input = contentResolver.openInputStream(uri)
             ?: throw IOException("No se pudo abrir la imagen seleccionada")
-
         input.use { inputStream ->
-            FileOutputStream(destination).use { output ->
-                inputStream.copyTo(output)
-            }
+            FileOutputStream(destination).use { output -> inputStream.copyTo(output) }
         }
         if (destination.length() == 0L) {
             destination.delete()
@@ -129,37 +150,72 @@ class MainActivity : Activity() {
         swapButton.isEnabled = sourceFile?.exists() == true && targetFile?.exists() == true
     }
 
+
+    private fun testServerConnection() {
+        saveServerUrlSilently()
+        val url = serverBaseUrl
+        if (url.isBlank()) {
+            statusText.text = "Falta configurar el servidor. Ingresá la dirección real del equipo donde está instalado el motor IA."
+            return
+        }
+        statusText.text = "Comprobando conexión con el motor IA…"
+        val request = Request.Builder().url("$url/health").get().build()
+        httpClient.newCall(request).enqueue(object : okhttp3.Callback {
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
+                runOnUiThread {
+                    statusText.text = "No se pudo conectar con $url. Verificá que el servidor esté activo y que la dirección sea correcta."
+                }
+            }
+
+            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                response.use { res ->
+                    val body = res.body?.string().orEmpty()
+                    runOnUiThread {
+                        statusText.text = if (res.isSuccessful && body.contains("\"models_loaded\"\\s*:\\s*true".toRegex())) {
+                            "Conexión correcta: motor IA y modelos disponibles."
+                        } else if (res.isSuccessful) {
+                            "Servidor conectado, pero los modelos todavía no están cargados. Detalle: $body"
+                        } else {
+                            "El servidor respondió HTTP ${res.code}: $body"
+                        }
+                    }
+                }
+            }
+        })
+    }
+
     private fun submitFaceSwap() {
         val source = sourceFile
         val target = targetFile
-
         if (source == null || target == null || !source.exists() || !target.exists()) {
             statusText.text = "Seleccioná ambas imágenes antes de continuar."
             return
         }
 
+        saveServerUrlSilently()
+        if (serverBaseUrl.isBlank()) {
+            statusText.text = "No hay servidor configurado. El motor IA debe estar instalado y encendido en un servidor accesible desde este teléfono."
+            return
+        }
         swapButton.isEnabled = false
-        statusText.text = "Procesando en el servidor…"
+        statusText.text = "Conectando y procesando…"
         resultPreview.setImageDrawable(null)
-
-        val sourceBody = source.asRequestBody("image/*".toMediaTypeOrNull())
-        val targetBody = target.asRequestBody("image/*".toMediaTypeOrNull())
 
         val multipart = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
-            .addFormDataPart("source", source.name, sourceBody)
-            .addFormDataPart("target", target.name, targetBody)
+            .addFormDataPart("source", source.name, source.asRequestBody("image/*".toMediaTypeOrNull()))
+            .addFormDataPart("target", target.name, target.asRequestBody("image/*".toMediaTypeOrNull()))
             .build()
 
         val request = Request.Builder()
-            .url(SWAP_ENDPOINT)
+            .url("$serverBaseUrl/swap")
             .post(multipart)
             .build()
 
         httpClient.newCall(request).enqueue(object : okhttp3.Callback {
             override fun onFailure(call: okhttp3.Call, e: IOException) {
                 runOnUiThread {
-                    statusText.text = "Error de conexión: ${e.localizedMessage ?: "sin conexión"}"
+                    statusText.text = "No se pudo conectar con $serverBaseUrl. Revisá la dirección y que el servidor esté encendido."
                     updateSwapButton()
                 }
             }
@@ -167,15 +223,13 @@ class MainActivity : Activity() {
             override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
                 response.use { res ->
                     if (!res.isSuccessful) {
-                        val message = res.body?.string()?.take(500)
-                            ?: "HTTP ${res.code}"
+                        val message = res.body?.string()?.take(500) ?: "HTTP ${res.code}"
                         runOnUiThread {
-                            statusText.text = "El servidor respondió con error: $message"
+                            statusText.text = "Error del servidor: $message"
                             updateSwapButton()
                         }
                         return
                     }
-
                     val bytes = res.body?.bytes()
                     if (bytes == null || bytes.isEmpty()) {
                         runOnUiThread {
@@ -184,7 +238,6 @@ class MainActivity : Activity() {
                         }
                         return
                     }
-
                     val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                     runOnUiThread {
                         if (bitmap != null) {
@@ -198,6 +251,15 @@ class MainActivity : Activity() {
                 }
             }
         })
+    }
+
+    private fun saveServerUrlSilently() {
+        val value = serverUrlInput.text.toString().trim().trimEnd('/')
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                .putString(PREF_SERVER_URL, value)
+                .apply()
+        }
     }
 
     override fun onDestroy() {

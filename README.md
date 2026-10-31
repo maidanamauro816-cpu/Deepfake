@@ -1,35 +1,47 @@
-# Deepfake — Android client + face-swap API
+# Deepfake — Android client + AI backend
 
-This repository contains a native Android client and a separate FastAPI inference service.
+This repository contains a native Android client and a separate FastAPI inference service. The integration branch keeps the existing Android app and documents Locally Uncensored as an architecture reference; no Locally Uncensored source code has been copied into this branch.
 
 ## Build the Android APK
 
-Every push to `main` that changes `android-app/**` starts the **Android APK** GitHub Actions workflow. You can also start it manually from **Actions → Android APK → Run workflow**.
+The **Android APK** GitHub Actions workflow runs on pushes to `main` and `integration/locally-uncensored-review` when Android files change. It can also be started manually from **Actions → Android APK → Run workflow**.
 
-When the workflow succeeds, open its run and download the `deepfake-debug-apk` artifact. The APK is a debug build for testing, not a Play Store release.
+When the workflow succeeds, open the run and download the `deepfake-debug-apk` artifact. This is a debug build for testing, not a Play Store release.
 
-The Android project uses:
-- Android Gradle Plugin 8.7.3
-- Gradle 8.9
-- Kotlin 2.0.21
-- JDK 17
-- Android SDK 35
-- OkHttp 4.12.0
+## Connect from a physical Android phone
 
-## Connect the Android app to the API
+Open the app and enter the address of the computer or server that runs the API, for example:
 
-The app currently targets `http://10.0.2.2:8000`, which is the host machine from the Android Emulator. On a physical Android phone, change `BASE_URL` in `MainActivity.kt` to the reachable LAN address of the computer running the API, then rebuild.
+```
+http://192.168.1.20:8000
+```
 
-Cleartext HTTP is enabled only for local testing. Use HTTPS and authentication before exposing the API outside a trusted development network.
+Use the computer's actual local network IP, not `10.0.2.2` (that special address is only for the Android Emulator). The phone and computer must be on a network that allows them to communicate. Save the address in the app; it persists between launches.
 
 ## Start the backend
 
-Install the packages in `backend-server/requirements.txt`, place a lawfully obtained and license-compatible `inswapper_128.onnx` file at `backend-server/models/inswapper_128.onnx`, then run from `backend-server`:
+Use Python 3.10 or 3.11. Install CPU dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Place authorized model files at the paths listed in `backend-server/.env.example`, then run from `backend-server`:
 
 ```bash
 USE_CUDA=0 MODEL_PATH=./models/inswapper_128.onnx uvicorn server:app --host 0.0.0.0 --port 8000
 ```
 
-The model weights are intentionally not included. InsightFace model licensing and usage restrictions must be reviewed separately. The backend must be running and the model installed for face-swap processing to work; building the Android APK alone does not provide on-device AI inference.
+For a compatible NVIDIA host, review `requirements-gpu.txt` and the CUDA/cuDNN compatibility requirements before using `USE_CUDA=1`.
 
-Only use images of people who have given permission. Clearly disclose manipulated output and do not use it to impersonate or mislead.
+**Important:** the model files are not bundled. InsightFace's code is MIT licensed, but its pretrained weights have separate restrictions; its current notice says public pretrained models are for non-commercial research and requests contacting InsightFace for InSwapper licensing. Do not use or distribute those weights until the required permission is obtained. See [the model catalog](docs/MODEL-CATALOG.md) and [third-party notices](THIRD-PARTY-NOTICES.md).
+
+The API must be running and both model components must load for face swapping to work. The Android APK alone does not include AI inference. The current API is a development service; do not expose it publicly without HTTPS, authentication, rate limiting and privacy controls.
+
+## Locally Uncensored integration status
+
+The upstream project is AGPL-3.0-only and uses Tauri/Rust/React. This branch contains an architecture and license review only; it does not yet contain its modules or Android runtime. Any future source integration must preserve the AGPL obligations and separately clear all model and engine licenses.
+
+## Responsible use
+
+Only process images of people who have given permission. Clearly disclose manipulated output and do not use it to impersonate or mislead.
