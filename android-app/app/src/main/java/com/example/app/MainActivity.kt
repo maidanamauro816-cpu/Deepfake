@@ -69,6 +69,9 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.btnSaveServer).setOnClickListener {
             saveServerUrl()
         }
+        findViewById<Button>(R.id.btnTestServer).setOnClickListener {
+            testServerConnection()
+        }
         findViewById<Button>(R.id.btnSelectSource).setOnClickListener {
             openImagePicker(REQUEST_SOURCE)
         }
@@ -145,6 +148,36 @@ class MainActivity : Activity() {
 
     private fun updateSwapButton() {
         swapButton.isEnabled = sourceFile?.exists() == true && targetFile?.exists() == true
+    }
+
+
+    private fun testServerConnection() {
+        saveServerUrlSilently()
+        val url = serverBaseUrl
+        statusText.text = "Comprobando conexión con el motor IA…"
+        val request = Request.Builder().url("$url/health").get().build()
+        httpClient.newCall(request).enqueue(object : okhttp3.Callback {
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
+                runOnUiThread {
+                    statusText.text = "No se pudo conectar con $url. Verificá que el servidor esté activo y que la dirección sea correcta."
+                }
+            }
+
+            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                response.use { res ->
+                    val body = res.body?.string().orEmpty()
+                    runOnUiThread {
+                        statusText.text = if (res.isSuccessful && body.contains("\"models_loaded\"\\s*:\\s*true".toRegex())) {
+                            "Conexión correcta: motor IA y modelos disponibles."
+                        } else if (res.isSuccessful) {
+                            "Servidor conectado, pero los modelos todavía no están cargados. Detalle: $body"
+                        } else {
+                            "El servidor respondió HTTP ${res.code}: $body"
+                        }
+                    }
+                }
+            }
+        })
     }
 
     private fun submitFaceSwap() {
