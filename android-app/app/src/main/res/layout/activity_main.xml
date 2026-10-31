@@ -47,6 +47,12 @@
             android:text="GUARDAR CONEXIÓN" />
 
         <Button
+            android:id="@+id/btnTestServer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="PROBAR CONEXIÓN" />
+
+        <Button
             android:id="@+id/btnSelectSource"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
