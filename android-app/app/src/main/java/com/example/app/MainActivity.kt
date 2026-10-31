@@ -26,7 +26,7 @@ class MainActivity : Activity() {
         private const val REQUEST_TARGET = 1002
         private const val PREFS = "deepfake_settings"
         private const val PREF_SERVER_URL = "server_url"
-        private const val DEFAULT_SERVER_URL = "http://10.0.2.2:8000"
+        private const val DEFAULT_SERVER_URL = ""
     }
 
     private val httpClient: OkHttpClient by lazy {
@@ -154,6 +154,10 @@ class MainActivity : Activity() {
     private fun testServerConnection() {
         saveServerUrlSilently()
         val url = serverBaseUrl
+        if (url.isBlank()) {
+            statusText.text = "Falta configurar el servidor. Ingresá la dirección real del equipo donde está instalado el motor IA."
+            return
+        }
         statusText.text = "Comprobando conexión con el motor IA…"
         val request = Request.Builder().url("$url/health").get().build()
         httpClient.newCall(request).enqueue(object : okhttp3.Callback {
@@ -189,6 +193,10 @@ class MainActivity : Activity() {
         }
 
         saveServerUrlSilently()
+        if (serverBaseUrl.isBlank()) {
+            statusText.text = "No hay servidor configurado. El motor IA debe estar instalado y encendido en un servidor accesible desde este teléfono."
+            return
+        }
         swapButton.isEnabled = false
         statusText.text = "Conectando y procesando…"
         resultPreview.setImageDrawable(null)
